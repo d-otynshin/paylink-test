@@ -2,9 +2,14 @@ import { FC, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authService } from '../services/auth';
-import { TwoFactorModal } from '../components/TwoFactorModal.tsx';
 import { AuthStatus } from '../services/auth/types.ts';
 import { LoginForm } from '../components/LoginForm.tsx';
+import { TwoFactorModal } from '../components/TwoFactorModal.tsx';
+import {
+  isErrorResponse,
+  isSuccessResponse,
+  isTwoFactorResponse
+} from '../services/auth/auth-guards.ts';
 
 type FormData = {
   email: string;
@@ -27,27 +32,25 @@ const LoginPage: FC = () => {
       return authService.authenticate(email, password);
     },
     onSuccess: (response) => {
-      if (response.status === AuthStatus.ERROR) {
-        throw new Error(response.message)
+      if (isErrorResponse(response)) {
+        throw new Error(response.message);
       }
 
-      if (response.status === AuthStatus.SUCCESS) {
+      if (isSuccessResponse(response)) {
         localStorage.setItem('token', response.token);
         navigate('/devices');
 
         return;
       }
 
-      if ([AuthStatus.TWO_FA_SETUP_REQUIRED, AuthStatus.TWO_FA_VERIFY_REQUIRED].includes(response.status)) {
+      if (isTwoFactorResponse(response)) {
         setStage(
-          AuthStatus.TWO_FA_SETUP_REQUIRED === response.status
+          response.status === AuthStatus.TWO_FA_SETUP_REQUIRED
             ? AuthStage.TWO_FACTORY_SETUP
             : AuthStage.TWO_FACTORY_VERIFY
         );
 
         localStorage.setItem('tempToken', response.tempToken);
-
-        return;
       }
     },
     onError: (error) => {

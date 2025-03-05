@@ -1,23 +1,23 @@
 import { useState } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from '../hooks/useAuth';
 import { devicesService } from '../services/devices';
 import { Device } from '../services/devices/types.ts';
+import { Pagination } from '../components/Pagination.tsx';
 
-const pageSize = 10;
+const PAGE_SIZE = 10;
 
 export default function DevicesPage() {
   const [pageNumber, setPageNumber] = useState(1);
 
-  const { logout } = useAuth();
   const navigate = useNavigate();
-
   const queryClient = useQueryClient();
+  const { logout } = useAuth();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['devices', pageNumber],
-    queryFn: async () => await devicesService.fetchDevices(pageNumber, pageSize),
+    queryFn: async () => await devicesService.fetchDevices(pageNumber, PAGE_SIZE),
   });
 
   const mutation = useMutation({
@@ -64,26 +64,7 @@ export default function DevicesPage() {
           </tbody>
         </table>
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center p-4">
-          <button
-            onClick={() => setPageNumber((prev) => Math.max(prev - 1, 0))}
-            disabled={pageNumber === 0}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span>
-          Page {data.page.number + 1} of {data.page.totalPages}
-        </span>
-          <button
-            onClick={() => setPageNumber((prev) => prev + 1)}
-            disabled={pageNumber + 1 >= data.page.totalPages}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
+        <Pagination setPageNumber={setPageNumber} pageNumber={pageNumber} data={data} />
       </div>
 
       <button
