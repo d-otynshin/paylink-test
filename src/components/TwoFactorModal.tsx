@@ -4,10 +4,10 @@ import { useForm } from 'react-hook-form';
 import * as Dialog from '@radix-ui/react-dialog';
 
 import { authService } from '../services/auth';
-import { AuthStatus } from '../services/auth/types.ts';
 import { TOTPForm } from './TOTPForm.tsx';
 import { QRStep } from './QRStep.tsx';
 import { AuthStage, TwoFactorStages, TwoFactorSteps, TwoFaFormData } from '../types/auth.ts';
+import { isSuccessResponse } from '../services/auth/auth-guards.ts';
 
 interface TwoFactorModalProps {
   stage: Exclude<AuthStage, AuthStage.LOGIN>,
@@ -26,11 +26,11 @@ export const TwoFactorModal: FC<TwoFactorModalProps> = ({ stage }) => {
       const request = stage === AuthStage.TWO_FACTORY_SETUP ? 'setup' : 'verify';
       const response = await authService[request](data.code, tempToken)
 
-      if (response.status === AuthStatus.SUCCESS) {
+      if (isSuccessResponse(response)) {
         localStorage.setItem('token', response.token);
         localStorage.removeItem('tempToken');
 
-        navigate('/devices')
+        navigate('/devices');
       }
     } catch (error: unknown) {
       console.error('Invalid 2FA code', error);

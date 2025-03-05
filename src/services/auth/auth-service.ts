@@ -12,8 +12,8 @@ import {
 } from './auth-types.ts';
 
 import {
-  isSuccessQrResponse,
   isSuccessResponse,
+  isSuccessQrResponse,
   isTwoFactorSetupResponse,
   isTwoFactorVerifyResponse
 } from './auth-guards.ts';
