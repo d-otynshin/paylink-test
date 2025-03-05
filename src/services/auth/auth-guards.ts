@@ -1,11 +1,12 @@
 import { AuthStatus } from './types.ts';
 
 import {
+  BaseAuthResponse,
   ErrorResponse,
   SuccessResponse,
   SuccessQrResponse,
   TwoFactorSetupResponse,
-  TwoFactorVerifyResponse, BaseAuthResponse,
+  TwoFactorVerifyResponse,
 } from './auth-types.ts';
 
 export function isSuccessResponse(response: unknown): response is SuccessResponse {
