@@ -1,51 +1,71 @@
-import * as React from "react";
-import * as Form from "@radix-ui/react-form";
-import { useForm } from "react-hook-form";
+import { FC, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { authService } from '../services/auth';
+import { TwoFactorModal } from '../components/TwoFactorModal.tsx';
+import { AuthStatus } from '../services/auth/types.ts';
+import { LoginForm } from '../components/LoginForm.tsx';
 
 type FormData = {
   email: string;
   password: string;
 };
 
-const LoginPage: React.FC = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
+enum AuthStage {
+  LOGIN = 'LOGIN',
+  TWO_FACTORY_SETUP = 'TWO_FACTORY_SETUP',
+  TWO_FACTORY_VERIFY = 'TWO_FACTORY_VERIFY',
+}
 
-  const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
+const LoginPage: FC = () => {
+  const [stage, setStage] = useState(AuthStage.LOGIN)
+  const [error, setError] = useState<Error>()
+  const navigate = useNavigate();
+
+  const mutation = useMutation({
+    mutationFn: async ({ email, password }: FormData) => {
+      return authService.authenticate(email, password);
+    },
+    onSuccess: (response) => {
+      if (response.status === AuthStatus.ERROR) {
+        throw new Error(response.message)
+      }
+
+      if (response.status === AuthStatus.SUCCESS) {
+        localStorage.setItem('token', response.token);
+        navigate('/devices');
+
+        return;
+      }
+
+      if ([AuthStatus.TWO_FA_SETUP_REQUIRED, AuthStatus.TWO_FA_VERIFY_REQUIRED].includes(response.status)) {
+        setStage(
+          AuthStatus.TWO_FA_SETUP_REQUIRED === response.status
+            ? AuthStage.TWO_FACTORY_SETUP
+            : AuthStage.TWO_FACTORY_VERIFY
+        );
+
+        localStorage.setItem('tempToken', response.tempToken);
+
+        return;
+      }
+    },
+    onError: (error) => {
+      console.error('Login failed:', error);
+      setError(error)
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    mutation.mutate(data);
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Login</h1>
-      <Form.Root onSubmit={handleSubmit(onSubmit)} className="w-80 p-4 border rounded-lg shadow-lg space-y-4">
-        <Form.Field name="email" className="grid gap-2">
-          <Form.Label className="text-sm font-medium">Email</Form.Label>
-          <Form.Control asChild>
-            <input
-              {...register("email", { required: "Email is required" })}
-              type="email"
-              className="border p-2 rounded w-full"
-            />
-          </Form.Control>
-          {errors.email && <Form.Message className="text-red-500 text-sm">{errors.email.message}</Form.Message>}
-        </Form.Field>
-
-        <Form.Field name="password" className="grid gap-2">
-          <Form.Label className="text-sm font-medium">Password</Form.Label>
-          <Form.Control asChild>
-            <input
-              {...register("password", { required: "Password is required", minLength: { value: 6, message: "Must be at least 6 characters" } })}
-              type="password"
-              className="border p-2 rounded w-full"
-            />
-          </Form.Control>
-          {errors.password && <Form.Message className="text-red-500 text-sm">{errors.password.message}</Form.Message>}
-        </Form.Field>
-
-        <Form.Submit asChild>
-          <button className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Submit</button>
-        </Form.Submit>
-      </Form.Root>
+      { stage === AuthStage.LOGIN
+        ? <LoginForm onSubmit={onSubmit} error={error} />
+        : <TwoFactorModal stage={stage} />
+      }
     </div>
   );
 };

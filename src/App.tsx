@@ -1,4 +1,3 @@
-import './App.css'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { JSX } from 'react';
 import { useAuth } from './hooks/useAuth.ts';
@@ -18,8 +17,8 @@ function App() {
 }
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
-  // const { isAuthenticated } = useAuth();
-  const isAuthenticated = true;
+  const { isAuthenticated } = useAuth();
+  console.log('Authenticated', isAuthenticated);
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
